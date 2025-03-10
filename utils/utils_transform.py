@@ -7,12 +7,13 @@ import torchvision.transforms.functional as F
 class VideoTransform:
     def __init__(self, output_size, flip_prob=0.5, crop_prob=0.5, scale=(0.8, 1.0), ratio=(3 / 4, 4 / 3)):
         """
-        参数：
-            output_size (int or tuple): 输出图像的尺寸，int 类型表示长宽相同，tuple 类型表示 (height, width)。
-            flip_prob (float): 随机翻转的概率，默认 0.5。
-            crop_prob (float): 随机裁剪的概率，默认 0.5。
-            scale (tuple): 随机裁剪区域相对于原图面积的比例范围。
-            ratio (tuple): 随机裁剪区域的宽高比范围。
+        Parameters:
+            output_size (int or tuple): Output image size. If int, both height and width are the same;
+                                        if tuple, it represents (height, width).
+            flip_prob (float): Probability of random flipping (default: 0.5).
+            crop_prob (float): Probability of random cropping (default: 0.5).
+            scale (tuple): Range of the cropped area relative to the original image area.
+            ratio (tuple): Aspect ratio range of the cropped area.
         """
         self.output_size = output_size
         self.flip_prob = flip_prob
@@ -21,47 +22,47 @@ class VideoTransform:
         self.ratio = ratio
 
     def __call__(self, images):
-        # 获取当前视频帧的尺寸，假设所有帧大小相同
+        # Get the size of the current video frame, assuming all frames are the same size
         width, height = images[0].size
 
-        # 生成一次随机参数
+        # Generate random transformation parameters
         vertical_flip = random.random() < self.flip_prob
         horizontal_flip = random.random() < self.flip_prob
         do_random_crop = random.random() < self.crop_prob
 
-        # 如果需要随机裁剪，生成裁剪参数
+        # Generate crop parameters if random cropping is applied
         if do_random_crop:
             crop_width, crop_height = self._get_random_crop_size(width, height, self.scale, self.ratio)
             x1 = random.randint(0, width - crop_width)
             y1 = random.randint(0, height - crop_height)
         else:
-            # 不需要随机裁剪，使用全图
+            # No cropping, use the full image
             x1, y1, crop_width, crop_height = 0, 0, width, height
 
         transformed_images = []
         for img in images:
-            # 裁剪
+            # Crop the image
             img = F.crop(img, y1, x1, crop_height, crop_width)
 
-            # 随机垂直翻转
+            # Apply random vertical flip
             if vertical_flip:
                 img = F.vflip(img)
 
-            # 随机水平翻转
+            # Apply random horizontal flip
             if horizontal_flip:
                 img = F.hflip(img)
 
-            # 调整图像大小到指定的输出尺寸
+            # Resize the image to the specified output size
             img = F.resize(img, [self.output_size, self.output_size])
 
-            # 转换为张量
+            # Convert to tensor
             img = F.to_tensor(img)
 
             transformed_images.append(img)
         return transformed_images
 
     def _get_random_crop_size(self, width, height, scale, ratio):
-        """根据图像尺寸、比例和缩放范围生成随机裁剪尺寸"""
+        """Generate a random crop size based on image dimensions, aspect ratio, and scale range"""
         area = width * height
         for _ in range(10):
             target_area = random.uniform(*scale) * area
@@ -74,6 +75,6 @@ class VideoTransform:
             if crop_width <= width and crop_height <= height:
                 return crop_width, crop_height
 
-        # 如果循环未找到合适的尺寸，使用最小边长进行中心裁剪
+        # If no suitable size is found, use the smallest side for center cropping
         min_side = min(width, height)
         return min_side, min_side

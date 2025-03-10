@@ -4,10 +4,10 @@ import torch.nn as nn
 class CPCM(nn.Module):
     """
     Clinical Prior Constraints Module
-    参数：
-        num_frames (int): 输入视频的帧数。
-        feature_dim (int, 可选): 提取特征的维度，默认为 1024。
-        output_dim (int, 可选): 经过 1x1 卷积后的特征维度，默认为 256。
+    Parameters:
+        num_frames (int): Number of frames in the input video.
+        feature_dim (int, optional): Dimension of extracted features, default is 1024.
+        output_dim (int, optional): Feature dimension after 1x1 convolution, default is 256.
     """
 
     def __init__(self, num_frames=32, feature_dim=1024, output_dim=256):
@@ -15,16 +15,16 @@ class CPCM(nn.Module):
 
         self.num_frames = num_frames
 
-        # 1x1 卷积进行通道降维
+        # 1x1 convolution for channel reduction
         self.dim_reduce = nn.Sequential(
             nn.Conv2d(feature_dim, output_dim, kernel_size=(1, 1), bias=False),
             nn.BatchNorm2d(output_dim),
             nn.ReLU(inplace=True))
 
-        # 全局平均池化
+        # Global average pooling
         self.global_avg_pool = nn.AdaptiveAvgPool2d(1)
 
-        # 用于生成时间注意力权重的全连接层
+        # Fully connected layers for generating temporal attention weights
         self.attention_fc = nn.Sequential(
             nn.Linear(num_frames, num_frames // 2, bias=False),
             nn.ReLU(inplace=True),
@@ -33,37 +33,39 @@ class CPCM(nn.Module):
 
     def forward(self, x):
         """
-        参数：
-            x (torch.Tensor): 输入张量，形状为 (batch_size * num_frames, channels, height, width)。
-        返回：
-            元组：
-                - weighted_features (torch.Tensor): 应用时间注意力后的加权特征，形状为 (batch_size, output_dim, num_frames, H', W')。
-                - time_attention (torch.Tensor): 每一帧的时间注意力权重，形状为 (batch_size, num_frames)。
+        Parameters:
+            x (torch.Tensor): Input tensor with shape (batch_size * num_frames, channels, height, width).
+        Returns:
+            Tuple:
+                - weighted_features (torch.Tensor): Weighted features after applying temporal attention,
+                  shape (batch_size, output_dim, num_frames, H', W').
+                - time_attention (torch.Tensor): Temporal attention weights for each frame,
+                  shape (batch_size, num_frames).
         """
         batch_size = x.size(0) // self.num_frames
 
-        # 1x1 卷积进行维度降维
-        x = self.dim_reduce(x)  # 形状：(batch_size * num_frames, output_dim, H', W')
+        # 1x1 convolution for dimension reduction
+        x = self.dim_reduce(x)  # Shape: (batch_size * num_frames, output_dim, H', W')
 
-        # 重塑张量形状并调整维度顺序
+        # Reshape tensor and adjust dimension order
         x = x.view(batch_size, self.num_frames, -1, x.size(-2), x.size(-1)).permute(0, 2, 1, 3, 4)
 
-        # 全局平均池化，得到 (batch_size, output_dim, num_frames, 1, 1)
+        # Global average pooling, resulting in (batch_size, output_dim, num_frames, 1, 1)
         pooled_features = self.global_avg_pool(x)
 
-        # 压缩空间维度，得到 (batch_size, output_dim, num_frames)
+        # Compress spatial dimensions, resulting in (batch_size, output_dim, num_frames)
         pooled_features = pooled_features.view(batch_size, -1, self.num_frames)
 
-        # 在特征维度上取平均，得到 (batch_size, num_frames)
+        # Compute mean across feature dimensions, resulting in (batch_size, num_frames)
         pooled_features_mean = pooled_features.mean(dim=1)
 
-        # 生成时间注意力权重，形状为 (batch_size, num_frames)
+        # Generate temporal attention weights, shape (batch_size, num_frames)
         time_attention = self.attention_fc(pooled_features_mean)
 
-        # 扩展注意力权重以匹配特征维度，形状为 (batch_size, 1, num_frames, 1, 1)
+        # Expand attention weights to match feature dimensions, shape (batch_size, 1, num_frames, 1, 1)
         time_attention_x = time_attention.view(batch_size, 1, self.num_frames, 1, 1)
 
-        # 应用时间注意力权重，形状为 (batch_size, output_dim, num_frames, H', W')
+        # Apply temporal attention weights, shape (batch_size, output_dim, num_frames, H', W')
         weighted_features = x * time_attention_x
 
         return weighted_features, time_attention

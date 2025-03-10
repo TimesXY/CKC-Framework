@@ -3,29 +3,29 @@ import torch.nn.functional as F
 
 
 class ResidualBlock(nn.Module):
-    """基于卷积层的基本残差模块，添加全局平均池化层"""
+    """Basic residual module based on convolutional layers, with an optional global average pooling layer."""
 
     def __init__(self, in_channels, out_channels, stride=1, use_gap=False):
         super(ResidualBlock, self).__init__()
         self.use_gap = use_gap
 
-        # 第一个卷积层
+        # First convolutional layer
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=(3, 3), stride=(stride, stride), padding=1,
                                bias=False)
         self.bn1 = nn.BatchNorm2d(out_channels)
 
-        # 第二个卷积层
+        # Second convolutional layer
         self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=(3, 3), stride=(1, 1), padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(out_channels)
 
-        # 旁路连接
+        # Shortcut connection
         self.shortcut = nn.Sequential()
         if stride != 1 or in_channels != out_channels:
             self.shortcut = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, kernel_size=(1, 1), stride=(1, 1), bias=False),
                 nn.BatchNorm2d(out_channels))
 
-        # 全局平均池化层
+        # Global average pooling layer
         if self.use_gap:
             self.gap = nn.AdaptiveAvgPool2d((1, 1))
 
