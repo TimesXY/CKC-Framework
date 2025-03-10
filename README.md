@@ -1,11 +1,19 @@
 # CKC-Framework
 This repository is an official implementation of the paper "Clinical Knowledge Constrained Multi-Task Learning Framework for Breast Cancer Diagnosis Using Ultrasound Videos."
 
-## Dataset
+## Breast-USV Dataset
 We collected the largest known publicly available breast ultrasound video dataset, Breast-USV, for breast cancer classification, 
 including 211 benign and 207 malignant cases. This dataset is available exclusively for non-commercial use in research or educational purposes. 
 As long as it is used within these scopes, users are allowed to edit or process the images in the dataset. 
+
 The full breast ultrasound dataset will be released after the paper is accepted for publication.
+
+## Related US3M Dataset
+We also collected a multimodal ultrasound image dataset for classification in breast cancer, including 145 benign and 103 malignant cases. This dataset is available for only non-commercial use in research or educational purposes. As long as you use the dataset for these purposes, you can edit or process images in the dataset. 
+
+You can access it here: https://www.kaggle.com/datasets/timesxy/multimodal-breast-ultrasound-dataset-us3m
+
+Pengfei Yan, Wushuang Gong, Minglei Li, Jiusi Zhang, Xiang Li, Yuchen Jiang, Hao Luo, and Hang Zhou. (2024). TDF-Net: Trusted Dynamic Feature Fusion Network for breast cancer diagnosis using incomplete multimodal ultrasound. Information Fusion, 102592.
 
 ## Code Usage
 
